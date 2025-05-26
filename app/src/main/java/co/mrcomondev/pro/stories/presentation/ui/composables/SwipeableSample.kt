@@ -1,6 +1,7 @@
 package co.mrcomondev.pro.stories.presentation.ui.composables
 
 
+import android.util.Log
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
@@ -25,6 +26,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
@@ -41,12 +43,22 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
+import co.mrcomondev.pro.stories.presentation.viewmodel.StoriesViewModel
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-fun EnhancedSwipeBetweenBoxes(modifier: Modifier) {
+fun EnhancedSwipeBetweenBoxes(
+  modifier: Modifier,
+  storiesViewModel: StoriesViewModel = hiltViewModel()
+) {
+
+  val stories = storiesViewModel.stories.collectAsState(initial = emptySet())
+
+  Log.d("stories", stories.value.toString())
 
   val colors = listOf(
     Color.Red,
@@ -82,7 +94,7 @@ fun EnhancedSwipeBetweenBoxes(modifier: Modifier) {
       remainingTime = 3
       progress = .3f
 
-      if(pagerState.currentPage == pagerState.pageCount - 1) progress = 0f
+      if (pagerState.currentPage == pagerState.pageCount - 1) progress = 0f
     }
   }
 
