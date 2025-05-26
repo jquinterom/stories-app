@@ -4,7 +4,6 @@ package co.mrcomondev.pro.stories.presentation.ui.composables
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
@@ -25,18 +24,30 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun EnhancedSwipeBetweenBoxes(modifier: Modifier) {
+
   val colors = listOf(
     Color.Red,
     Color.Blue,
@@ -44,9 +55,36 @@ fun EnhancedSwipeBetweenBoxes(modifier: Modifier) {
     Color.Yellow
   )
 
+  val borderWidth: Dp = 2.dp
+
+  var remainingTime by rememberSaveable { mutableIntStateOf(3) }
+  var progress by rememberSaveable { mutableFloatStateOf(.3f) }
+
   val pagerState = rememberPagerState(pageCount = { colors.size })
 
+  val activeColor: Color = MaterialTheme.colorScheme.primary
+
   val scope = rememberCoroutineScope()
+
+
+  LaunchedEffect(pagerState.currentPage) {
+    if (pagerState.currentPage < pagerState.pageCount) {
+      while (remainingTime > 0) {
+        delay(1000L)
+        remainingTime--
+        progress = progress + .35f
+      }
+
+      scope.launch {
+        pagerState.animateScrollToPage(pagerState.currentPage + 1)
+      }
+
+      remainingTime = 3
+      progress = .3f
+
+      if(pagerState.currentPage == pagerState.pageCount - 1) progress = 0f
+    }
+  }
 
   Column(modifier = modifier.fillMaxSize()) {
     Row(
@@ -73,25 +111,19 @@ fun EnhancedSwipeBetweenBoxes(modifier: Modifier) {
       }
 
       repeat(colors.size) { index ->
-        val isSelected = pagerState.currentPage == index
+        val isPageActive = pagerState.currentPage == index
+
         val size by animateDpAsState(
-          targetValue = if (isSelected) 32.dp else 28.dp
+          targetValue = if (isPageActive) 32.dp else 28.dp
         )
 
         Box(
           modifier = Modifier
             .size(size)
-            .border(
-              1.dp,
-              if (index == pagerState.currentPage) Color.White else Color.White.copy(alpha = 0.5f),
-              CircleShape
-            )
-            .size(30.dp)
             .clickable(
               interactionSource = remember { MutableInteractionSource() },
               indication = ripple(
                 bounded = false,
-                radius = 24.dp,
                 color = MaterialTheme.colorScheme.primary
               )
             ) {
@@ -99,8 +131,25 @@ fun EnhancedSwipeBetweenBoxes(modifier: Modifier) {
                 pagerState.animateScrollToPage(index)
               }
             }
+            .drawWithContent {
+              drawContent()
+
+              if (progress > 0 && isPageActive) {
+                drawArc(
+                  color = activeColor,
+                  startAngle = -90f,
+                  sweepAngle = 360f * progress,
+                  useCenter = false,
+                  size = Size(
+                    width = size.toPx(),
+                    height = size.toPx()
+                  ),
+                  style = Stroke(width = borderWidth.toPx(), cap = StrokeCap.Round)
+                )
+              }
+            }
             .background(
-              Color.White.copy(alpha = 0.5f),
+              color = colors[index],
               shape = CircleShape,
             )
         )
@@ -121,14 +170,12 @@ fun EnhancedSwipeBetweenBoxes(modifier: Modifier) {
           contentAlignment = Alignment.Center
         ) {
           Text(
-            text = "Pantalla ${page + 1}",
+            text = "Screen ${page + 1}",
             style = MaterialTheme.typography.displayLarge,
             color = Color.White
           )
         }
       }
     }
-
-
   }
 }
