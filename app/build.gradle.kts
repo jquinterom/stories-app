@@ -69,4 +69,7 @@ dependencies {
   // Datastore
   implementation(libs.androidx.datastore.preferences)
   implementation(libs.androidx.lifecycle.runtime.ktx)
+
+  // Coil
+  implementation(libs.coil.compose)
 }

@@ -1,28 +1,26 @@
-package co.mrcomondev.pro.stories.presentation.ui.composables
+package co.mrcomondev.pro.stories.presentation.composables
 
 
-import android.util.Log
+import android.net.Uri
+import android.os.Build
+import androidx.annotation.RequiresApi
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material3.Icon
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -30,25 +28,31 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import co.mrcomondev.pro.stories.R
 import co.mrcomondev.pro.stories.presentation.viewmodel.StoriesViewModel
+import coil.compose.AsyncImage
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
+@RequiresApi(Build.VERSION_CODES.TIRAMISU)
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun EnhancedSwipeBetweenBoxes(
@@ -58,26 +62,34 @@ fun EnhancedSwipeBetweenBoxes(
 
   val stories = storiesViewModel.stories.collectAsState(initial = emptySet())
 
-  Log.d("stories", stories.value.toString())
-
-  val colors = listOf(
-    Color.Red,
-    Color.Blue,
-    Color.Green,
-    Color.Yellow
-  )
-
   val borderWidth: Dp = 2.dp
 
   var remainingTime by rememberSaveable { mutableIntStateOf(3) }
   var progress by rememberSaveable { mutableFloatStateOf(.3f) }
 
-  val pagerState = rememberPagerState(pageCount = { colors.size })
+  val pagerState = rememberPagerState(pageCount = { stories.value.size })
 
   val activeColor: Color = MaterialTheme.colorScheme.primary
 
   val scope = rememberCoroutineScope()
+  var selectedImageUri by remember { mutableStateOf<Uri?>(null) }
 
+  val openAlertDialog = remember { mutableStateOf(false) }
+
+  val getImage: (Int) -> String = { pageIndex ->
+    if (stories.value.isNotEmpty()) {
+      stories.value.elementAt(index = pageIndex)
+    } else {
+      ""
+    }
+  }
+
+  var currentImage: String by remember { mutableStateOf("") }
+  stories.value.apply {
+    if (this.isNotEmpty()) {
+      currentImage = this.elementAt(pagerState.currentPage)
+    }
+  }
 
   LaunchedEffect(pagerState.currentPage) {
     if (pagerState.currentPage < pagerState.pageCount) {
@@ -98,6 +110,29 @@ fun EnhancedSwipeBetweenBoxes(
     }
   }
 
+  if (openAlertDialog.value) {
+    AlertDialogExample(
+      onDismissRequest = { openAlertDialog.value = false },
+      {
+        selectedImageUri.let { uri ->
+          storiesViewModel.addUrlStory(uri.toString())
+        }
+
+        selectedImageUri = null
+        openAlertDialog.value = false
+      },
+      "Save Image",
+      "Are you sure to upload this image?",
+      icon = Icons.Default.Info
+    )
+  }
+
+  LaunchedEffect(selectedImageUri) {
+    if (selectedImageUri != null) {
+      openAlertDialog.value = true
+    }
+  }
+
   Column(modifier = modifier.fillMaxSize()) {
     Row(
       modifier = Modifier
@@ -107,31 +142,27 @@ fun EnhancedSwipeBetweenBoxes(
       horizontalArrangement = Arrangement.spacedBy(8.dp),
       verticalAlignment = Alignment.CenterVertically
     ) {
-      Box(
-        modifier = Modifier
-          .size(32.dp)
-          .background(
-            Color.White.copy(alpha = 0.2f),
-            shape = CircleShape,
-          ),
-      ) {
-        Icon(
-          imageVector = Icons.Default.Add,
-          contentDescription = "Add",
-          modifier = Modifier.align(Alignment.Center)
-        )
-      }
 
-      repeat(colors.size) { index ->
+      ImagePicker(
+        modifier = Modifier.size(32.dp),
+        onImageSelected = { uri ->
+          selectedImageUri = uri
+        }
+      )
+
+      repeat(stories.value.size) { index ->
         val isPageActive = pagerState.currentPage == index
 
         val size by animateDpAsState(
           targetValue = if (isPageActive) 32.dp else 28.dp
         )
 
-        Box(
+        AsyncImage(
+          model = getImage(index),
+          contentDescription = "image",
           modifier = Modifier
             .size(size)
+            .clip(CircleShape)
             .clickable(
               interactionSource = remember { MutableInteractionSource() },
               indication = ripple(
@@ -159,35 +190,16 @@ fun EnhancedSwipeBetweenBoxes(
                   style = Stroke(width = borderWidth.toPx(), cap = StrokeCap.Round)
                 )
               }
-            }
-            .background(
-              color = colors[index],
-              shape = CircleShape,
-            )
+            },
+          contentScale = ContentScale.Crop,
+          error = painterResource(R.drawable.ic_launcher_background),
         )
       }
     }
 
-    Box(
-      modifier = Modifier
-    ) {
-      HorizontalPager(
-        state = pagerState,
-        modifier = Modifier.fillMaxSize()
-      ) { page ->
-        Box(
-          modifier = Modifier
-            .fillMaxSize()
-            .background(colors[page]),
-          contentAlignment = Alignment.Center
-        ) {
-          Text(
-            text = "Screen ${page + 1}",
-            style = MaterialTheme.typography.displayLarge,
-            color = Color.White
-          )
-        }
-      }
-    }
+    StoryImage(
+      pagerState = pagerState,
+      image = currentImage
+    )
   }
 }
