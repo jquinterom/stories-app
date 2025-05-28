@@ -64,7 +64,7 @@ fun EnhancedSwipeBetweenBoxes(
   val borderWidth: Dp = 2.dp
 
   var remainingTime by rememberSaveable { mutableIntStateOf(3) }
-  var progress by rememberSaveable { mutableFloatStateOf(.3f) }
+  var progress by rememberSaveable { mutableFloatStateOf(.0f) }
 
   val pagerState = rememberPagerState(pageCount = { stories.value.size })
 
@@ -85,7 +85,7 @@ fun EnhancedSwipeBetweenBoxes(
 
   val currentImage: String = getImage(pagerState.currentPage)
 
-  LaunchedEffect(pagerState.currentPage) {
+  LaunchedEffect(pagerState.currentPage, stories.value) {
     if (pagerState.currentPage < pagerState.pageCount) {
       while (remainingTime > 0) {
         delay(1000L)
