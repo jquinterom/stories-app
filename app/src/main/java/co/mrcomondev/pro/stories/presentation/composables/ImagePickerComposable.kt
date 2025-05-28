@@ -1,6 +1,7 @@
 package co.mrcomondev.pro.stories.presentation.composables
 
 import android.Manifest
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
@@ -39,7 +40,6 @@ fun ImagePicker(
   val context = LocalContext.current
 
   var hasPermission by remember {
-    // Initialize by checking the current permission status
     mutableStateOf(
       ContextCompat.checkSelfPermission(
         context,
@@ -51,7 +51,18 @@ fun ImagePicker(
   val imagePickerLauncher = rememberLauncherForActivityResult(
     contract = ActivityResultContracts.GetContent(),
     onResult = { uri ->
-      uri?.let(onImageSelected)
+      uri?.let {
+        onImageSelected(it)
+        try {
+          context.contentResolver.takePersistableUriPermission(
+            it,
+            Intent.FLAG_GRANT_READ_URI_PERMISSION
+          )
+
+        } catch (e: SecurityException) {
+          e.printStackTrace()
+        }
+      }
     }
   )
 

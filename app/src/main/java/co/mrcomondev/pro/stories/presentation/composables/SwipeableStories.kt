@@ -59,7 +59,6 @@ fun EnhancedSwipeBetweenBoxes(
   modifier: Modifier,
   storiesViewModel: StoriesViewModel = hiltViewModel()
 ) {
-
   val stories = storiesViewModel.stories.collectAsState(initial = emptySet())
 
   val borderWidth: Dp = 2.dp
@@ -84,12 +83,7 @@ fun EnhancedSwipeBetweenBoxes(
     }
   }
 
-  var currentImage: String by remember { mutableStateOf("") }
-  stories.value.apply {
-    if (this.isNotEmpty()) {
-      currentImage = this.elementAt(pagerState.currentPage)
-    }
-  }
+  val currentImage: String = getImage(pagerState.currentPage)
 
   LaunchedEffect(pagerState.currentPage) {
     if (pagerState.currentPage < pagerState.pageCount) {
@@ -113,7 +107,7 @@ fun EnhancedSwipeBetweenBoxes(
   if (openAlertDialog.value) {
     AlertDialogExample(
       onDismissRequest = { openAlertDialog.value = false },
-      {
+      onConfirmation = {
         selectedImageUri.let { uri ->
           storiesViewModel.addUrlStory(uri.toString())
         }
