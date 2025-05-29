@@ -1,6 +1,5 @@
 package co.mrcomondev.pro.stories.presentation.composables
 
-
 import android.net.Uri
 import android.os.Build
 import androidx.annotation.RequiresApi
@@ -12,14 +11,11 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Info
-import androidx.compose.material3.LinearProgressIndicator
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -34,7 +30,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import co.mrcomondev.pro.stories.presentation.viewmodel.StoriesViewModel
@@ -50,16 +45,11 @@ fun EnhancedSwipeBetweenBoxes(
 ) {
   val stories = storiesViewModel.stories.collectAsState(initial = emptySet())
 
-  val borderWidth: Dp = 2.dp
-
   var remainingTime by rememberSaveable { mutableIntStateOf(3) }
   var progress by rememberSaveable { mutableFloatStateOf(.0f) }
 
   val pagerState = rememberPagerState(pageCount = { stories.value.size })
 
-  val activeColor: Color = MaterialTheme.colorScheme.primary
-  val progressTrackColor: Color = MaterialTheme.colorScheme.surfaceVariant
-  val progressBarHeight = 2.dp
 
   val scope = rememberCoroutineScope()
   var selectedImageUri by remember { mutableStateOf<Uri?>(null) }
@@ -148,20 +138,12 @@ fun EnhancedSwipeBetweenBoxes(
           index = index,
           pagerState = pagerState,
           scope = scope,
-          borderWidth = borderWidth
         )
       }
     }
 
     if (stories.value.isNotEmpty() && pagerState.currentPage < pagerState.pageCount) {
-      LinearProgressIndicator(
-        progress = { progress },
-        modifier = Modifier
-          .fillMaxWidth()
-          .height(progressBarHeight),
-        color = activeColor,
-        trackColor = progressTrackColor,
-      )
+      LoaderIndicator(progress = progress)
     }
 
     StoryImage(
